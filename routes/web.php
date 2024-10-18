@@ -1,69 +1,119 @@
 <?php
 use App\Controllers\AuthController;
 use App\Controllers\TaskController;
+use App\Controllers\UserController;
 
 $authController = new AuthController();
 $taskController = new TaskController();
+$userController = new UserController();
 
+// Lấy URI và loại bỏ phần tiền tố '/task_management'
 $uri = rtrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 $uri = str_replace('/task_management', '', $uri);
 
-
-//echo $uri;
-
-// Route cho login với cả phương thức GET và POST
-if ($uri === '/login' && in_array($_SERVER['REQUEST_METHOD'], ['GET', 'POST'])) {
-//    echo 'xxx';
-    $authController->login();
-}
-
-// Route cho register
-elseif ($uri === '/register' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $authController->register();
-}
-
-// Route cho logout
-elseif ($uri === '/logout' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $authController->logout();
-}
-
-// Route cho tasks (chỉ xem danh sách công việc)
-elseif ($uri === '/tasks' && $_SERVER['REQUEST_METHOD'] === 'GET') {
-    // Lấy token từ tiêu đề Authorization
+/**
+ * Kiểm tra và trả về userId nếu token hợp lệ
+ * @return mixed $userId nếu hợp lệ, false nếu không hợp lệ
+ */
+function authenticateUser($authController) {
     $headers = apache_request_headers();
     if (isset($headers['Authorization'])) {
         $token = str_replace('Bearer ', '', $headers['Authorization']);
-        $userId = $authController->validateToken($token);
-
-        if ($userId) {
-            $taskController->index();
-        } else {
-            echo json_encode(['error' => 'Unauthorized']);
-        }
-    } else {
-        echo json_encode(['error' => 'No token provided']);
+        return $authController->validateToken($token);
     }
+    return false;
 }
 
-// Route cho lưu công việc mới
-elseif ($uri === '/tasks/store' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Lấy token từ tiêu đề Authorization
-    $headers = apache_request_headers();
-    if (isset($headers['Authorization'])) {
-        $token = str_replace('Bearer ', '', $headers['Authorization']);
-        $userId = $authController->validateToken($token);
-
-        if ($userId) {
-            $taskController->store();
-        } else {
-            echo json_encode(['error' => 'Unauthorized']);
+// Xử lý các route
+switch ($uri) {
+    // Route cho login với cả phương thức GET và POST
+    case '/login':
+        if (in_array($_SERVER['REQUEST_METHOD'], ['GET', 'POST'])) {
+            $authController->login();
         }
-    } else {
-        echo json_encode(['error' => 'No token provided']);
-    }
+        break;
+
+    // Route cho register
+    case '/register':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $authController->register();
+        }
+        break;
+
+    // Route cho logout
+    case '/logout':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $authController->logout();
+        }
+        break;
+
+    // Route cho danh sách công việc
+    case '/tasks/getAllTasks':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $userId = authenticateUser($authController);
+            if ($userId) {
+                $taskController->index();
+            } else {
+                echo json_encode(['error' => 'Unauthorized']);
+            }
+        }
+        break;
+    case (preg_match('/\/tasks\/(\d+)/', $uri, $matches) ? true : false):
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $userId = authenticateUser($authController);
+            if ($userId) {
+                $taskController->getTaskById($matches[1]); // Truyền id từ URL vào hàm
+            } else {
+                echo json_encode(['error' => 'Unauthorized']);
+            }
+        }
+        break;
+
+    // Route cho lưu công việc mới và cập nhật các công việc
+    case '/tasks/store':
+    case '/tasks/update':
+    case '/tasks/storeSubTask':
+    case '/tasks/updateSubTaskCompletion':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $userId = authenticateUser($authController);
+            if ($userId) {
+                // Phân nhánh theo route
+                switch ($uri) {
+                    case '/tasks/store':
+                        $taskController->store();
+                        break;
+                    case '/tasks/update':
+                        $taskController->update();
+                        break;
+                    case '/tasks/storeSubTask':
+                        $taskController->storeSubTask();
+                        break;
+                    case '/tasks/updateSubTaskCompletion':
+                        $taskController->updateSubTaskCompletion();
+                        break;
+                }
+            } else {
+                echo json_encode(['error' => 'Unauthorized']);
+            }
+        }
+        break;
+
+    // Route cho danh sách user
+    case '/users':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $userId = authenticateUser($authController);
+            if ($userId) {
+                $userController->index();
+            } else {
+                echo json_encode(['error' => 'Unauthorized']);
+            }
+        }
+        break;
+
+    // Route không tìm thấy
+    default:
+        echo json_encode(['error' => 'Route not found']);
+        break;
 }
 
-// Route không tìm thấy
-else {
-    echo json_encode(['error' => 'Route not found']);
-}
+

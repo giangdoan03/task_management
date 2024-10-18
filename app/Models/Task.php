@@ -19,6 +19,14 @@ class Task
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    // Hàm lấy chi tiết một task theo id
+    public function getTaskById($id)
+    {
+        $stmt = $this->db->prepare("SELECT * FROM tasks WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     public function createTask($data)
     {
         $stmt = $this->db->prepare("INSERT INTO tasks (title, description, assigned_to, due_date) VALUES (:title, :description, :assigned_to, :due_date)");
@@ -36,4 +44,39 @@ class Task
         $stmt = $this->db->prepare("DELETE FROM tasks WHERE id = :id");
         return $stmt->execute(['id' => $id]);
     }
+
+    public function getSubTasks($taskId)
+    {
+        $stmt = $this->db->prepare("SELECT * FROM sub_tasks WHERE task_id = :task_id");
+        $stmt->execute(['task_id' => $taskId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function createSubTask($data)
+    {
+        $stmt = $this->db->prepare("INSERT INTO sub_tasks (task_id, title, description) VALUES (:task_id, :title, :description)");
+        return $stmt->execute($data);
+    }
+
+    public function updateSubTaskCompletion($subTaskId, $isCompleted)
+    {
+        $stmt = $this->db->prepare("UPDATE sub_tasks SET is_completed = :is_completed WHERE id = :id");
+        return $stmt->execute(['id' => $subTaskId, 'is_completed' => $isCompleted]);
+    }
+
+    public function updateTaskCompletion($taskId, $completionPercentage)
+    {
+        $stmt = $this->db->prepare("UPDATE tasks SET completion_percentage = :completion_percentage WHERE id = :id");
+        return $stmt->execute(['id' => $taskId, 'completion_percentage' => $completionPercentage]);
+    }
+
+    public function checkTaskExists($taskId)
+    {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM tasks WHERE id = :task_id");
+        $stmt->execute(['task_id' => $taskId]);
+        return $stmt->fetchColumn() > 0;
+    }
+
+
+
 }
