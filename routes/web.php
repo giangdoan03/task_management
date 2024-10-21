@@ -1,4 +1,16 @@
 <?php
+// Thiết lập tiêu đề CORS
+header("Access-Control-Allow-Origin: http://localhost:8080");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Credentials: true");
+
+// Xử lý yêu cầu OPTIONS
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
 use App\Controllers\AuthController;
 use App\Controllers\TaskController;
 use App\Controllers\UserController;
@@ -11,9 +23,24 @@ $userController = new UserController();
 $uri = rtrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 $uri = str_replace('/task_management', '', $uri);
 
+// Kiểm tra xác thực người dùng trước khi xử lý route
+$userId = authenticateUser($authController);
+
+/**
+ * Phản hồi lỗi dưới dạng JSON
+ * @param $message
+ * @param int $statusCode
+ */
+function jsonResponse($message, $statusCode = 400) {
+    http_response_code($statusCode);
+    echo json_encode(['error' => $message]);
+    exit();
+}
+
 /**
  * Kiểm tra và trả về userId nếu token hợp lệ
- * @return mixed $userId nếu hợp lệ, false nếu không hợp lệ
+ * @param $authController
+ * @return bool
  */
 function authenticateUser($authController) {
     $headers = apache_request_headers();
@@ -24,9 +51,21 @@ function authenticateUser($authController) {
     return false;
 }
 
-// Xử lý các route
+// Xử lý route cho chi tiết công việc `/tasks/{id}`
+if (preg_match('/^\/tasks\/(\d+)$/', $uri, $matches)) {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if ($userId) {
+            $taskController->getTaskById($matches[1]);
+        } else {
+            jsonResponse('Unauthorized', 401);
+        }
+    }
+    exit(); // Thoát sau khi xử lý route này
+}
+
+// Xử lý các route khác
 switch ($uri) {
-    // Route cho login với cả phương thức GET và POST
+    // Route cho login
     case '/login':
         if (in_array($_SERVER['REQUEST_METHOD'], ['GET', 'POST'])) {
             $authController->login();
@@ -48,23 +87,12 @@ switch ($uri) {
         break;
 
     // Route cho danh sách công việc
-    case '/tasks/getAllTasks':
+    case '/tasks':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $userId = authenticateUser($authController);
             if ($userId) {
-                $taskController->index();
+                $taskController->getAllTasks();
             } else {
-                echo json_encode(['error' => 'Unauthorized']);
-            }
-        }
-        break;
-    case (preg_match('/\/tasks\/(\d+)/', $uri, $matches) ? true : false):
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $userId = authenticateUser($authController);
-            if ($userId) {
-                $taskController->getTaskById($matches[1]); // Truyền id từ URL vào hàm
-            } else {
-                echo json_encode(['error' => 'Unauthorized']);
+                jsonResponse('Unauthorized', 401);
             }
         }
         break;
@@ -75,9 +103,7 @@ switch ($uri) {
     case '/tasks/storeSubTask':
     case '/tasks/updateSubTaskCompletion':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $userId = authenticateUser($authController);
             if ($userId) {
-                // Phân nhánh theo route
                 switch ($uri) {
                     case '/tasks/store':
                         $taskController->store();
@@ -93,7 +119,7 @@ switch ($uri) {
                         break;
                 }
             } else {
-                echo json_encode(['error' => 'Unauthorized']);
+                jsonResponse('Unauthorized', 401);
             }
         }
         break;
@@ -101,19 +127,16 @@ switch ($uri) {
     // Route cho danh sách user
     case '/users':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $userId = authenticateUser($authController);
             if ($userId) {
                 $userController->index();
             } else {
-                echo json_encode(['error' => 'Unauthorized']);
+                jsonResponse('Unauthorized', 401);
             }
         }
         break;
 
     // Route không tìm thấy
     default:
-        echo json_encode(['error' => 'Route not found']);
+        jsonResponse('Route not found', 404);
         break;
 }
-
-

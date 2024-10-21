@@ -49,8 +49,9 @@ class TaskController
         $this->jsonResponse(['error' => 'Unauthorized'], 401);
     }
 
-    public function index()
+    public function getAllTasks()
     {
+        $userId = $this->authenticate();  // Xác thực người dùng
         $tasks = $this->taskModel->getAllTasks();
         $this->jsonResponse($tasks);
     }
@@ -157,11 +158,5 @@ class TaskController
         $this->jsonResponse(['success' => 'Sub-task updated and completion recalculated']);
     }
 
-    // API để trả về danh sách người dùng
-    public function getListUser()
-    {
-        $users = $this->userModel->getAllUsers();
-        $this->jsonResponse($users);
-    }
 }
 
