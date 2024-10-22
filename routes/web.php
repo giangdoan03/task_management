@@ -43,39 +43,35 @@ function jsonResponse($message, $statusCode = 400) {
  * @return bool
  */
 function authenticateUser($authController) {
-    // Lấy tất cả header từ request
     $headers = apache_request_headers();
-
-    // Kiểm tra xem header Authorization có tồn tại không
     if (isset($headers['Authorization'])) {
-        // Tách token từ chuỗi Authorization header (dạng 'Bearer {token}')
         $token = str_replace('Bearer ', '', $headers['Authorization']);
-
-        // Xác thực token bằng phương thức validateToken
         $userId = $authController->validateToken($token);
-
-        // Nếu token hợp lệ, trả về userId
-        if ($userId) {
-            return $userId;
-        } else {
-            // Nếu token không hợp lệ
-            return false;
-        }
+        return $userId ?: false;
     }
-
-    // Trả về false nếu không có Authorization header
     return false;
 }
 
+// Kiểm tra xác thực người dùng
+function checkAuthentication($userId) {
+    if (!$userId) {
+        jsonResponse('Unauthorized', 401);
+    }
+}
+
+// Lấy ID từ POST data
+function getPostId() {
+    if (isset($_POST['id']) && !empty($_POST['id'])) {
+        return $_POST['id'];
+    }
+    jsonResponse('ID is required', 400);
+}
 
 // Xử lý route cho chi tiết công việc `/tasks/{id}`
 if (preg_match('/^\/tasks\/(\d+)$/', $uri, $matches)) {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        if ($userId) {
-            $taskController->getTaskById($matches[1]);
-        } else {
-            jsonResponse('Unauthorized', 401);
-        }
+        checkAuthentication($userId);
+        $taskController->getTaskById($matches[1]);
     }
     exit(); // Thoát sau khi xử lý route này
 }
@@ -106,11 +102,8 @@ switch ($uri) {
     // Route cho danh sách công việc
     case '/tasks':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            if ($userId) {
-                $taskController->getAllTasks();
-            } else {
-                jsonResponse('Unauthorized', 401);
-            }
+            checkAuthentication($userId);
+            $taskController->getAllTasks();
         }
         break;
 
@@ -120,45 +113,61 @@ switch ($uri) {
     case '/tasks/storeSubTask':
     case '/tasks/updateSubTaskCompletion':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if ($userId) {
-                switch ($uri) {
-                    case '/tasks/store':
-                        $taskController->store();
-                        break;
-                    case '/tasks/update':
-                        $taskController->update();
-                        break;
-                    case '/tasks/storeSubTask':
-                        $taskController->storeSubTask();
-                        break;
-                    case '/tasks/updateSubTaskCompletion':
-                        $taskController->updateSubTaskCompletion();
-                        break;
-                }
-            } else {
-                jsonResponse('Unauthorized', 401);
+            checkAuthentication($userId);
+            switch ($uri) {
+                case '/tasks/store':
+                    $taskController->store();
+                    break;
+                case '/tasks/update':
+                    $taskController->update();
+                    break;
+                case '/tasks/storeSubTask':
+                    $taskController->storeSubTask();
+                    break;
+                case '/tasks/updateSubTaskCompletion':
+                    $taskController->updateSubTaskCompletion();
+                    break;
             }
         }
         break;
 
     case '/subtasks/delete':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if ($userId) {
-                $taskController->deleteSubTasks();
-            } else {
-                jsonResponse('Unauthorized', 401);
-            }
+            checkAuthentication($userId);
+            $taskController->deleteSubTasks();
         }
         break;
 
     // Route cho danh sách user
     case '/users':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            if ($userId) {
-                $userController->index();
-            } else {
-                jsonResponse('Unauthorized', 401);
-            }
+            checkAuthentication($userId);
+            $userController->index();
+        }
+        break;
+
+    case '/users/store':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            checkAuthentication($userId);  // Kiểm tra xác thực người dùng
+            $userController->store();  // Gọi phương thức store để tạo người dùng mới
+        }
+        break;
+
+    // Route cho cập nhật thông tin người dùng
+    case '/users/update':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            checkAuthentication($userId);
+            $id = getPostId(); // Lấy ID từ POST
+            $userController->update($id);
+        }
+        break;
+
+    // Route cho xóa người dùng
+    case '/users/delete':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            checkAuthentication($userId);
+            $id = getPostId(); // Lấy ID từ POST
+            $userController->delete($id);
         }
         break;
 
