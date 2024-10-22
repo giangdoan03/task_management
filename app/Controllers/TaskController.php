@@ -51,19 +51,41 @@ class TaskController
 
     public function getAllTasks()
     {
-        $userId = $this->authenticate();  // Xác thực người dùng
+        // Xác thực người dùng
+        $userId = $this->authenticate();
+
+        // Nếu không xác thực được, trả về lỗi Unauthorized
+        if (!$userId) {
+            return $this->jsonResponse(['error' => 'Unauthorized'], 401);
+        }
+
+        // Nếu xác thực thành công, tiếp tục xử lý
         $tasks = $this->taskModel->getAllTasks();
-        $this->jsonResponse($tasks);
+        return $this->jsonResponse($tasks);
     }
 
-    // Hàm lấy chi tiết một task theo id
+// Hàm lấy chi tiết một task theo id, bao gồm cả subtasks
     public function getTaskById($id)
     {
+        // Xác thực người dùng
+        $userId = $this->authenticate();
+
+        // Nếu không xác thực được, trả về lỗi Unauthorized
+        if (!$userId) {
+            return $this->jsonResponse(['error' => 'Unauthorized'], 401);
+        }
+        // Lấy task theo id
         $task = $this->taskModel->getTaskById($id);
+
         if ($task) {
-            $this->jsonResponse($task);
+            // Lấy subtasks liên quan đến task này
+            $subTasks = $this->taskModel->getSubTasks($id);
+            // Thêm subtasks vào response
+            $task['subtasks'] = $subTasks;
+
+            return $this->jsonResponse($task); // Trả về JSON bao gồm task và subtasks
         } else {
-            $this->jsonResponse(['error' => 'Task not found'], 404);
+            return $this->jsonResponse(['error' => 'Task not found'], 404);
         }
     }
 
@@ -117,20 +139,30 @@ class TaskController
         $userId = $this->authenticate();  // Xác thực người dùng
         $input = $this->getJsonInput();  // Lấy dữ liệu từ JSON input
 
+        // Kiểm tra các trường cần thiết
         $requiredFields = ['task_id', 'title', 'description'];
         foreach ($requiredFields as $field) {
             if (empty($input[$field])) {
                 $this->jsonResponse(['error' => ucfirst($field) . ' is required'], 400);
+                return;
             }
         }
 
+        // Kiểm tra xem task có tồn tại không
         $taskExists = $this->taskModel->checkTaskExists($input['task_id']);
         if (!$taskExists) {
             $this->jsonResponse(['error' => 'Task ID does not exist'], 404);
+            return;
         }
 
+        // Tạo subtask mới
         $this->taskModel->createSubTask($input);
-        $this->jsonResponse(['success' => 'Sub-task created successfully'], 201);
+
+        // Lấy lại subtask vừa tạo để trả về
+        $subTask = $this->taskModel->getLastInsertedSubTask();
+
+        // Trả về phản hồi với subtask vừa tạo
+        $this->jsonResponse($subTask, 201);
     }
 
     public function updateSubTaskCompletion()
@@ -138,10 +170,12 @@ class TaskController
         $userId = $this->authenticate();  // Xác thực người dùng
         $input = $this->getJsonInput();  // Lấy dữ liệu từ JSON input
 
+        // Kiểm tra xem các trường có tồn tại hay không, không dùng empty vì empty coi 0 là giá trị trống
         $requiredFields = ['id', 'is_completed', 'task_id'];
         foreach ($requiredFields as $field) {
-            if (empty($input[$field])) {
+            if (!isset($input[$field])) {
                 $this->jsonResponse(['error' => ucfirst($field) . ' is required'], 400);
+                return;
             }
         }
 
@@ -150,12 +184,40 @@ class TaskController
         // Tính toán % hoàn thành của task lớn
         $subTasks = $this->taskModel->getSubTasks($input['task_id']);
         $totalSubTasks = count($subTasks);
-        $completedSubTasks = count(array_filter($subTasks, fn($subTask) => $subTask['is_completed'] == 1));
+        $completedSubTasks = count(array_filter($subTasks, function($subTask) {
+            return $subTask['is_completed'] == 1;
+        }));
 
-        $completionPercentage = ($completedSubTasks / $totalSubTasks) * 100;
-        $this->taskModel->updateTaskCompletion($input['task_id'], $completionPercentage);
+        // Kiểm tra xem có sub-task nào không để tránh chia cho 0
+        $completionPercentage = 0;
+        if ($totalSubTasks > 0) {
+            $completionPercentage = ($completedSubTasks / $totalSubTasks) * 100;
+            $this->taskModel->updateTaskCompletion($input['task_id'], $completionPercentage);
+        } else {
+            $this->taskModel->updateTaskCompletion($input['task_id'], 0);  // Không có sub-task, đặt % hoàn thành là 0
+        }
 
-        $this->jsonResponse(['success' => 'Sub-task updated and completion recalculated']);
+        // Trả về phần trăm hoàn thành mới
+        $this->jsonResponse([
+            'success' => 'Sub-task updated and completion recalculated',
+            'completion_percentage' => $completionPercentage
+        ]);
+    }
+
+    public function deleteSubTasks()
+    {
+        $userId = $this->authenticate();  // Xác thực người dùng
+        $input = $this->getJsonInput();  // Lấy dữ liệu từ JSON input
+
+        // Kiểm tra xem có nhận được danh sách ID hoặc một ID cần xóa không
+        if (empty($input['subtask_ids'])) {
+            $this->jsonResponse(['error' => 'Sub-task IDs are required'], 400);
+            return;
+        }
+
+        // Gọi model để xóa subtasks
+        $this->taskModel->deleteSubTasks($input['subtask_ids']);
+        $this->jsonResponse(['success' => 'Sub-tasks deleted successfully'], 200);
     }
 
 }

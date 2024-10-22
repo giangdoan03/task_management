@@ -43,13 +43,30 @@ function jsonResponse($message, $statusCode = 400) {
  * @return bool
  */
 function authenticateUser($authController) {
+    // Lấy tất cả header từ request
     $headers = apache_request_headers();
+
+    // Kiểm tra xem header Authorization có tồn tại không
     if (isset($headers['Authorization'])) {
+        // Tách token từ chuỗi Authorization header (dạng 'Bearer {token}')
         $token = str_replace('Bearer ', '', $headers['Authorization']);
-        return $authController->validateToken($token);
+
+        // Xác thực token bằng phương thức validateToken
+        $userId = $authController->validateToken($token);
+
+        // Nếu token hợp lệ, trả về userId
+        if ($userId) {
+            return $userId;
+        } else {
+            // Nếu token không hợp lệ
+            return false;
+        }
     }
+
+    // Trả về false nếu không có Authorization header
     return false;
 }
+
 
 // Xử lý route cho chi tiết công việc `/tasks/{id}`
 if (preg_match('/^\/tasks\/(\d+)$/', $uri, $matches)) {
@@ -118,6 +135,16 @@ switch ($uri) {
                         $taskController->updateSubTaskCompletion();
                         break;
                 }
+            } else {
+                jsonResponse('Unauthorized', 401);
+            }
+        }
+        break;
+
+    case '/subtasks/delete':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if ($userId) {
+                $taskController->deleteSubTasks();
             } else {
                 jsonResponse('Unauthorized', 401);
             }

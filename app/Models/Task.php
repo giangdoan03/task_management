@@ -54,9 +54,23 @@ class Task
 
     public function createSubTask($data)
     {
+        // Xác định các khóa trong mảng $data
         $stmt = $this->db->prepare("INSERT INTO sub_tasks (task_id, title, description) VALUES (:task_id, :title, :description)");
-        return $stmt->execute($data);
+
+        // Chạy câu lệnh với các giá trị tương ứng từ mảng $data
+        return $stmt->execute([
+            'task_id' => $data['task_id'],
+            'title' => $data['title'],
+            'description' => $data['description']
+        ]);
     }
+
+    public function getLastInsertedSubTask()
+    {
+        $stmt = $this->db->query("SELECT * FROM sub_tasks ORDER BY id DESC LIMIT 1");
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
 
     public function updateSubTaskCompletion($subTaskId, $isCompleted)
     {
@@ -76,6 +90,23 @@ class Task
         $stmt->execute(['task_id' => $taskId]);
         return $stmt->fetchColumn() > 0;
     }
+
+    // Phương thức để xóa một hoặc nhiều subtasks
+    public function deleteSubTasks($subTaskIds)
+    {
+        // Kiểm tra nếu chỉ có một ID thì xử lý thành mảng
+        if (!is_array($subTaskIds)) {
+            $subTaskIds = [$subTaskIds];
+        }
+
+        // Tạo câu lệnh SQL xóa với danh sách ID
+        $ids = implode(',', array_fill(0, count($subTaskIds), '?'));
+        $stmt = $this->db->prepare("DELETE FROM sub_tasks WHERE id IN ($ids)");
+
+        // Thực thi câu lệnh
+        return $stmt->execute($subTaskIds);
+    }
+
 
 
 
