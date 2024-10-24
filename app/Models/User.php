@@ -23,9 +23,21 @@ class User
     // Thêm một người dùng mới
     public function createUser($data)
     {
+        // Check if the email already exists
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
+        $stmt->execute(['email' => $data['email']]);
+        $count = $stmt->fetchColumn();
+
+        if ($count > 0) {
+            // Email already exists, return an error message or handle it as you prefer
+            throw new \Exception("Email already exists.");
+        }
+
+        // If the email doesn't exist, proceed to insert the new user
         $stmt = $this->db->prepare("INSERT INTO users (name, email, password, role) VALUES (:name, :email, :password, :role)");
         return $stmt->execute($data);
     }
+
 
 // Cập nhật thông tin người dùng
     public function updateUser($id, $data)
