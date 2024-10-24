@@ -170,8 +170,8 @@ class TaskController
         $userId = $this->authenticate();  // Xác thực người dùng
         $input = $this->getJsonInput();  // Lấy dữ liệu từ JSON input
 
-        // Kiểm tra xem các trường có tồn tại hay không, không dùng empty vì empty coi 0 là giá trị trống
-        $requiredFields = ['id', 'is_completed', 'task_id'];
+        // Kiểm tra xem các trường có tồn tại hay không
+        $requiredFields = ['id', 'is_completed', 'task_id', 'title', 'description'];
         foreach ($requiredFields as $field) {
             if (!isset($input[$field])) {
                 $this->jsonResponse(['error' => ucfirst($field) . ' is required'], 400);
@@ -179,12 +179,13 @@ class TaskController
             }
         }
 
-        $this->taskModel->updateSubTaskCompletion($input['id'], $input['is_completed']);
+        // Gọi đúng phương thức updateSubTaskCompletion
+        $this->taskModel->updateSubTaskCompletion($input['id'], $input['is_completed'], $input['title'], $input['description']);
 
         // Tính toán % hoàn thành của task lớn
         $subTasks = $this->taskModel->getSubTasks($input['task_id']);
         $totalSubTasks = count($subTasks);
-        $completedSubTasks = count(array_filter($subTasks, function($subTask) {
+        $completedSubTasks = count(array_filter($subTasks, function ($subTask) {
             return $subTask['is_completed'] == 1;
         }));
 
@@ -203,6 +204,8 @@ class TaskController
             'completion_percentage' => $completionPercentage
         ]);
     }
+
+
 
     public function deleteSubTasks()
     {

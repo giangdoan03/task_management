@@ -72,16 +72,26 @@ class Task
     }
 
 
-    public function updateSubTaskCompletion($subTaskId, $isCompleted)
+    public function updateSubTaskCompletion($subTaskId, $isCompleted, $title, $description)
     {
-        $stmt = $this->db->prepare("UPDATE sub_tasks SET is_completed = :is_completed WHERE id = :id");
-        return $stmt->execute(['id' => $subTaskId, 'is_completed' => $isCompleted]);
+        $stmt = $this->db->prepare("UPDATE sub_tasks SET is_completed = :is_completed, title = :title, description = :description WHERE id = :id");
+        return $stmt->execute([
+            'id' => $subTaskId,
+            'is_completed' => $isCompleted,
+            'title' => $title,
+            'description' => $description
+        ]);
     }
+
 
     public function updateTaskCompletion($taskId, $completionPercentage)
     {
+        // Assuming the table name for tasks is 'tasks'
         $stmt = $this->db->prepare("UPDATE tasks SET completion_percentage = :completion_percentage WHERE id = :id");
-        return $stmt->execute(['id' => $taskId, 'completion_percentage' => $completionPercentage]);
+        return $stmt->execute([
+            'id' => $taskId,
+            'completion_percentage' => $completionPercentage
+        ]);
     }
 
     public function checkTaskExists($taskId)

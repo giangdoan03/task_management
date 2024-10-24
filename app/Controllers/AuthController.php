@@ -19,9 +19,15 @@ class AuthController
 
     public function login()
     {
-
         // Lấy thông tin từ JSON request body
         $input = json_decode(file_get_contents('php://input'), true);
+
+        // Kiểm tra xem input có hợp lệ không
+        if (is_null($input) || !isset($input['email']) || !isset($input['password'])) {
+            echo json_encode(['error' => 'Email and password are required']);
+            return;
+        }
+
         $email = $input['email'];
         $password = $input['password'];
 
@@ -46,6 +52,7 @@ class AuthController
             echo json_encode(['error' => 'Invalid credentials']);
         }
     }
+
 
 
     public function register()
