@@ -54,4 +54,13 @@ class User
         return $stmt->execute(['id' => $id]);
     }
 
+    // Lấy thông tin người dùng theo ID
+    public function getUserById($id)
+    {
+        $stmt = $this->db->prepare("SELECT id, name, email, role, created_at FROM users WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+
 }

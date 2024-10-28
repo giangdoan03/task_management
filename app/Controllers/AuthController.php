@@ -47,7 +47,16 @@ class AuthController
 
             $jwt = JWT::encode($payload, $this->secretKey, 'HS256');
 
-            echo json_encode(['token' => $jwt]);
+            // Trả về token và thông tin người dùng
+            echo json_encode([
+                'token' => $jwt,
+                'user' => [
+                    'id' => $user['id'],
+                    'name' => $user['name'],
+                    'email' => $user['email'],
+                    'role' => $user['role']
+                ]
+            ]);
         } else {
             echo json_encode(['error' => 'Invalid credentials']);
         }

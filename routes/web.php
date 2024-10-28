@@ -10,15 +10,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
-
+use App\Database; // Import class Database
 use App\Controllers\AuthController;
 use App\Controllers\TaskController;
 use App\Controllers\UserController;
+use App\Controllers\CommentController; // Import CommentController
+
+
+// Lấy kết nối cơ sở dữ liệu từ Singleton Database
+$db = Database::getInstance(); // Khởi tạo kết nối cơ sở dữ liệu từ lớp Database
 
 $authController = new AuthController();
 $taskController = new TaskController();
 $userController = new UserController();
-
+$commentController = new CommentController($db); // Truyền $db vào CommentController
 // Lấy URI và loại bỏ phần tiền tố '/task_management'
 $uri = rtrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 $uri = str_replace('/task_management', '', $uri);
@@ -72,6 +77,15 @@ if (preg_match('/^\/tasks\/(\d+)$/', $uri, $matches)) {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         checkAuthentication($userId);
         $taskController->getTaskById($matches[1]);
+    }
+    exit(); // Thoát sau khi xử lý route này
+}
+
+// Route cho chi tiết người dùng `/users/{id}`
+if (preg_match('/^\/users\/(\d+)$/', $uri, $matches)) {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        checkAuthentication($userId);
+        $userController->show($matches[1]); // Gọi phương thức show với ID người dùng
     }
     exit(); // Thoát sau khi xử lý route này
 }
@@ -170,6 +184,25 @@ switch ($uri) {
             $userController->delete($id);
         }
         break;
+
+    // Route để lấy danh sách bình luận cho công việc
+    case '/comments/task':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            checkAuthentication($userId);
+            $taskId = $_GET['task_id']; // Lấy task_id từ query params
+            $commentController->getComments($taskId);
+        }
+        break;
+
+    // Route để lưu bình luận mới
+    case '/comments/store':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            checkAuthentication($userId);
+            $commentController->storeComment();
+        }
+        break;
+
+
 
     // Route không tìm thấy
     default:

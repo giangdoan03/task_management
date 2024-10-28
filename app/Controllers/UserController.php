@@ -104,4 +104,15 @@ class UserController
         http_response_code($statusCode);
         echo json_encode($data);
     }
+
+    // API để trả về chi tiết một người dùng theo ID
+    public function show($id)
+    {
+        $user = $this->userModel->getUserById($id);
+        if ($user) {
+            $this->jsonResponse($user, 200); // Thành công
+        } else {
+            $this->jsonResponse(['error' => 'User not found'], 404); // Không tìm thấy người dùng
+        }
+    }
 }
