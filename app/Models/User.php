@@ -23,10 +23,20 @@ class User
     // Thêm một người dùng mới
     public function createUser($data)
     {
+        // Kiểm tra xem email đã tồn tại chưa
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
+        $stmt->execute(['email' => $data['email']]);
+        $count = $stmt->fetchColumn();
+
+        if ($count > 0) {
+            // Ném ngoại lệ nếu email đã tồn tại
+            throw new \Exception("Email already exists.");
+        }
+
+        // Thêm người dùng mới nếu email chưa tồn tại
         $stmt = $this->db->prepare("INSERT INTO users (name, email, password, role) VALUES (:name, :email, :password, :role)");
         return $stmt->execute($data);
     }
-
 // Cập nhật thông tin người dùng
     public function updateUser($id, $data)
     {

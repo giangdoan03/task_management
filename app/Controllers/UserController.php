@@ -46,9 +46,14 @@ class UserController
         // Hash password trước khi lưu vào cơ sở dữ liệu
         $input['password'] = password_hash($input['password'], PASSWORD_DEFAULT);
 
-        // Tạo người dùng
-        $this->userModel->createUser($input);
-        $this->jsonResponse(['success' => 'User created successfully'], 201);
+        try {
+            // Tạo người dùng
+            $this->userModel->createUser($input);
+            $this->jsonResponse(['success' => 'User created successfully'], 201);
+        } catch (\Exception $e) {
+            // Xử lý ngoại lệ cho email trùng lặp
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        }
     }
 
     // API để cập nhật thông tin người dùng

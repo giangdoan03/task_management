@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controllers;
 
 use App\Models\Task;
@@ -204,7 +205,6 @@ class TaskController
             'completion_percentage' => $completionPercentage
         ]);
     }
-
 
 
     public function deleteSubTasks()
