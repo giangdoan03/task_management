@@ -51,8 +51,8 @@ class UserController
             $this->userModel->createUser($input);
             $this->jsonResponse(['success' => 'User created successfully'], 201);
         } catch (\Exception $e) {
-            // Handle duplicate email or other exceptions
-            $this->jsonResponse(['error' => $e->getMessage()], 400); // Bad request or custom status code
+            // Xử lý ngoại lệ cho email trùng lặp
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
         }
     }
 
