@@ -9,7 +9,7 @@ use App\Database;
 class AuthController
 {
     private $db;
-    private $secretKey = "your_secret_key"; // Thay bằng khóa bí mật của bạn
+    private $secretKey = "your_secret_key_here"; // Thay bằng khóa bí mật của bạn
 
     public function __construct()
     {
@@ -43,7 +43,7 @@ class AuthController
                 : (getenv('JWT_ISSUER') ?: "https://api.develop.io.vn");
 
             // Đặt secretKey từ file .env nếu có, hoặc dùng giá trị mặc định
-            $secretKey = getenv('SECRET_KEY') ?: 'your_static_secret_key_here';
+            $secretKey = getenv('SECRET_KEY') ?: 'your_secret_key_here';
 
             // Tạo JWT token
             $payload = [
@@ -112,6 +112,7 @@ class AuthController
             $decoded = JWT::decode($token, new Key($this->secretKey, 'HS256'));
             return $decoded->sub;
         } catch (\Exception $e) {
+            error_log("Token validation error: " . $e->getMessage()); // Ghi log chi tiết
             return false;
         }
     }
