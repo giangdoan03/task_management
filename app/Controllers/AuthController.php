@@ -39,7 +39,7 @@ class AuthController
         if ($user && password_verify($password, $user['password'])) {
             // Tạo JWT token
             $payload = [
-                'iss' => "localhost", // Issuer
+                'iss' => getenv('JWT_ISSUER') ?: "localhost", // Sử dụng biến môi trường hoặc localhost mặc định
                 'iat' => time(),      // Thời gian tạo token
                 'exp' => time() + 3600, // Thời gian hết hạn (1 giờ)
                 'sub' => $user['id'], // ID người dùng
