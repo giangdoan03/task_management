@@ -47,7 +47,9 @@ class TaskController
                 return $userId;
             }
         }
-        $this->jsonResponse(['error' => 'Unauthorized'], 401);
+        http_response_code(401); // Đảm bảo mã trạng thái HTTP là 401
+        echo json_encode(['error' => 'Unauthorized']);
+        exit();
     }
 
     public function getAllTasks()

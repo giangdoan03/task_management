@@ -37,15 +37,24 @@ class AuthController
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
+            // Thiết lập JWT_ISSUER tùy theo môi trường
+            $jwt_issuer = ($_SERVER['SERVER_NAME'] === 'localhost')
+                ? 'http://localhost'
+                : (getenv('JWT_ISSUER') ?: "https://api.develop.io.vn");
+
+            // Đặt secretKey từ file .env nếu có, hoặc dùng giá trị mặc định
+            $secretKey = getenv('SECRET_KEY') ?: 'your_static_secret_key_here';
+
             // Tạo JWT token
             $payload = [
-                'iss' => getenv('JWT_ISSUER') ?: "localhost", // Sử dụng biến môi trường hoặc localhost mặc định
-                'iat' => time(),      // Thời gian tạo token
-                'exp' => time() + 3600, // Thời gian hết hạn (1 giờ)
-                'sub' => $user['id'], // ID người dùng
+                'iss' => $jwt_issuer,
+                'iat' => time(),            // Thời gian tạo token
+                'exp' => time() + 3600,     // Thời gian hết hạn (1 giờ)
+                'sub' => $user['id'],       // ID người dùng
             ];
 
-            $jwt = JWT::encode($payload, $this->secretKey, 'HS256');
+            // Tạo JWT
+            $jwt = JWT::encode($payload, $secretKey, 'HS256');
 
             // Trả về token và thông tin người dùng
             echo json_encode([
