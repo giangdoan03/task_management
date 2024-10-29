@@ -39,7 +39,7 @@ class User
         return $stmt->execute($data);
     }
 
-// Cập nhật thông tin người dùng
+    // Cập nhật thông tin người dùng
     public function updateUser($id, $data)
     {
         $stmt = $this->db->prepare("UPDATE users SET name = :name, email = :email, role = :role WHERE id = :id");
@@ -47,7 +47,7 @@ class User
         return $stmt->execute($data);
     }
 
-// Xóa người dùng dựa trên ID
+    // Xóa người dùng dựa trên ID
     public function deleteUser($id)
     {
         $stmt = $this->db->prepare("DELETE FROM users WHERE id = :id");

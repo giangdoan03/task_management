@@ -1,6 +1,6 @@
 <?php
 // Thiết lập tiêu đề CORS
-header("Access-Control-Allow-Origin: http://localhost:8080");
+header("Access-Control-Allow-Origin: https://qlcv.develop.io.vn");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Access-Control-Allow-Credentials: true");
@@ -14,7 +14,7 @@ use App\Database; // Import class Database
 use App\Controllers\AuthController;
 use App\Controllers\TaskController;
 use App\Controllers\UserController;
-use App\Controllers\CommentController; // Import CommentController
+use App\Controllers\CommentController;
 
 
 // Lấy kết nối cơ sở dữ liệu từ Singleton Database

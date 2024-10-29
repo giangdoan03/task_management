@@ -65,7 +65,7 @@ class TaskController
         return $this->jsonResponse($tasks);
     }
 
-// Hàm lấy chi tiết một task theo id, bao gồm cả subtasks
+    // Hàm lấy chi tiết một task theo id, bao gồm cả subtasks
     public function getTaskById($id)
     {
         // Xác thực người dùng
