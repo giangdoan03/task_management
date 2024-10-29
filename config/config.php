@@ -1,9 +1,10 @@
 <?php
 return [
     'db' => [
-        'host' => 'localhost',
-        'dbname' => 'task_management',
-        'username' => 'root',
-        'password' => '',
+        'host' => getenv('DB_HOST') ?: 'localhost',
+        'dbname' => getenv('DB_DATABASE') ?: 'task_management',
+        'username' => getenv('DB_USERNAME') ?: 'root',
+        'password' => getenv('DB_PASSWORD') ?: '',
     ]
 ];
+
